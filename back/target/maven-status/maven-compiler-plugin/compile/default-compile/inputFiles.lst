@@ -1,0 +1,17 @@
+/home/welllet/soa3/back/src/main/java/dto/XMLParser.java
+/home/welllet/soa3/back/src/main/java/config/SecurityConfig.java
+/home/welllet/soa3/back/src/main/java/controllers/StarshipController.java
+/home/welllet/soa3/back/src/main/java/exceptions/InvalidSortParamsException.java
+/home/welllet/soa3/back/src/main/java/entities/SpaceMarine.java
+/home/welllet/soa3/back/src/main/java/entities/domain/MeleeWeapon.java
+/home/welllet/soa3/back/src/main/java/config/XMLConfig.java
+/home/welllet/soa3/back/src/main/java/entities/domain/Coordinates.java
+/home/welllet/soa3/back/src/main/java/controllers/SpaceMarinesController.java
+/home/welllet/soa3/back/src/main/java/exceptions/NotFoundException.java
+/home/welllet/soa3/back/src/main/java/ServletInitializer.java
+/home/welllet/soa3/back/src/main/java/controllers/DefaultController.java
+/home/welllet/soa3/back/src/main/java/Soa3Application.java
+/home/welllet/soa3/back/src/main/java/serviceBeans/EJBFactory.java
+/home/welllet/soa3/back/src/main/java/config/WebConfig.java
+/home/welllet/soa3/back/src/main/java/entities/domain/Chapter.java
+/home/welllet/soa3/back/src/main/java/entities/Starship.java
