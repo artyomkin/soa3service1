@@ -9,25 +9,18 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import javax.xml.bind.annotation.*;
+import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-@Entity
-@Getter
-@Setter
-@Table(name = "space_marine")
 @XmlRootElement(name="spaceMarine")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class SpaceMarine {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class SpaceMarine implements Serializable {
     @XmlElement(nillable = true)
     private long id;
     @XmlElement(nillable = true)
     private String name;
-    @ManyToOne(cascade = CascadeType.PERSIST)
-    @JoinColumn(name="coordinates_id", referencedColumnName = "id")
     @XmlElement(nillable = true)
     private Coordinates coordinates;
     @XmlTransient
@@ -44,8 +37,6 @@ public class SpaceMarine {
 
     @XmlElement(nillable = true)
     private MeleeWeapon meleeWeapon;
-    @ManyToOne(cascade = CascadeType.PERSIST)
-    @JoinColumn(name="chapter_name", referencedColumnName = "name")
     @XmlElement(nillable = true)
     private Chapter chapter;
     @XmlElement(nillable = true)

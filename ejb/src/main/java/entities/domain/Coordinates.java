@@ -9,20 +9,15 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.*;
+import java.io.Serializable;
 
-@Entity
-@Getter
-@Setter
 @XmlRootElement(name="coordinates")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class Coordinates {
-    @Id
+public class Coordinates implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @XmlTransient
     private Integer id;
-    @NotNull(message = "coordinatesX")
     private Long x;
-    @NotNull(message = "coordinatesY")
     private int y;
 
     public Coordinates(){};

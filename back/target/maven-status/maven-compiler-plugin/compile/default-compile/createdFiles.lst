@@ -1,0 +1,13 @@
+controllers/SpaceMarinesController.class
+Soa3Application.class
+config/XMLConfig.class
+controllers/DefaultController.class
+dto/XMLParser.class
+config/WebConfig.class
+config/SecurityConfig.class
+exceptions/NotFoundException.class
+config/WebConfig$1.class
+serviceBeans/EJBFactory.class
+exceptions/InvalidSortParamsException.class
+ServletInitializer.class
+controllers/StarshipController.class

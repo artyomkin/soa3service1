@@ -7,13 +7,10 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.Serializable;
 
-@Entity
-@Getter
-@Setter
 @XmlRootElement(name="chapter")
-public class Chapter {
-    @Id
+public class Chapter implements Serializable {
     @NotNull(message = "chapterName")
     private String name;
     @NotNull(message = "parentLegion")

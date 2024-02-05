@@ -7,12 +7,13 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.Serializable;
 import java.util.List;
 
 @XmlRootElement(name="SpaceMarines")
 @XmlAccessorType(XmlAccessType.FIELD)
 @Data
-public class SpaceMarineListXMLResponse implements XMLResponse{
+public class SpaceMarineListXMLResponse implements XMLResponse, Serializable {
 
     @XmlElement(name="spaceMarines")
     private List<SpaceMarine> spaceMarines;

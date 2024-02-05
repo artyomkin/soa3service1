@@ -2,17 +2,17 @@ package services.requests;
 
 import services.requests.constraints.SortConstraint;
 import lombok.Data;
-import org.springframework.data.domain.Sort;
 
 import javax.validation.constraints.Digits;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.Serializable;
 import java.util.Date;
 
 @Data
 @XmlRootElement(name="SpaceMarine")
-public class SpaceMarineSearchRequest {
+public class SpaceMarineSearchRequest implements Serializable {
     private Integer id;
     private Date creationDate;
     @Min(value = 1, message = "page")
@@ -23,7 +23,7 @@ public class SpaceMarineSearchRequest {
     private Integer size = 1000;
     @SortConstraint
     private String sort;
-    private Sort.Direction order;
+    private CustomSortDirection order;
     private String name;
     @Digits(integer = 999999999, fraction = 5, message = "coordinatesX")
     private Double coordinatesX;
@@ -84,11 +84,11 @@ public class SpaceMarineSearchRequest {
         this.sort = sort;
     }
 
-    public Sort.Direction getOrder() {
+    public CustomSortDirection getOrder() {
         return order;
     }
 
-    public void setOrder(Sort.Direction order) {
+    public void setOrder(CustomSortDirection order) {
         this.order = order;
     }
 

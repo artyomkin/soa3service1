@@ -1,7 +1,9 @@
 package serviceBeans;
 
 import services.SpaceMarineService;
+import services.SpaceMarineServiceBean;
 import services.StarshipService;
+import services.StarshipServiceBean;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -9,20 +11,19 @@ import javax.naming.NamingException;
 import java.util.Properties;
 
 public class EJBFactory {
-    public static SpaceMarineService createSpaceMarineServiceFromJNDI() throws NamingException {
+    public static SpaceMarineServiceBean createSpaceMarineServiceFromJNDI() throws NamingException {
         return lookupSpaceMarineServiceBean();
     }
-    public static StarshipService createStarshipServiceFromJNDI() throws NamingException {
+    public static StarshipServiceBean createStarshipServiceFromJNDI() throws NamingException {
         return lookupStarshipServiceBean();
     }
-
-    private static SpaceMarineService lookupSpaceMarineServiceBean() throws NamingException {
+    private static SpaceMarineServiceBean lookupSpaceMarineServiceBean() throws NamingException {
         Context ctx = createInitialContext();
-        return (SpaceMarineService) ctx.lookup("java:global/ejb-0.0.1-SNAPSHOT/SpaceMarineServiceBean!services.SpaceMarineServiceBean");
+        return (SpaceMarineServiceBean) ctx.lookup("ejb:/ejb-0.0.1-SNAPSHOT/SpaceMarineServiceBeanImpl!services.SpaceMarineServiceBean");
     }
-    private static StarshipService lookupStarshipServiceBean() throws NamingException {
+    private static StarshipServiceBean lookupStarshipServiceBean() throws NamingException {
         Context ctx = createInitialContext();
-        return (StarshipService) ctx.lookup("java:global/ejb-0.0.1-SNAPSHOT/StarshipServiceBean!services.StarshipServiceBean");
+        return (StarshipServiceBean) ctx.lookup("ejb:/ejb-0.0.1-SNAPSHOT/StarshipServiceBeanImpl!services.StarshipServiceBean");
     }
 
     private static Context createInitialContext() throws NamingException {
@@ -34,6 +35,7 @@ public class EJBFactory {
         jndiProperties.put(Context.PROVIDER_URL,
                 "http-remoting://localhost:8080");
         jndiProperties.put("jboss.naming.client.ejb.context", true);
+
         return new InitialContext(jndiProperties);
     }
 }

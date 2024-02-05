@@ -6,12 +6,13 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.Serializable;
 import java.util.List;
 
 @XmlRootElement(name="LandWrongFields")
 @XmlAccessorType(XmlAccessType.FIELD)
 @Data
-public class LandXMLWrongFields implements XMLResponse {
+public class LandXMLWrongFields implements XMLResponse, Serializable {
     @XmlElement(name="wrongField")
     private List<String> wrongFields;
 

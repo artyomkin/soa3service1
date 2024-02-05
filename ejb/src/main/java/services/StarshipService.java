@@ -1,5 +1,6 @@
 package services;
 
+import repo.DB;
 import services.responses.LandXMLWrongFields;
 import services.responses.StarshipWrongFieldsXMLResponse;
 import services.responses.StarshipXMLResponse;
@@ -7,54 +8,79 @@ import services.responses.XMLResponse;
 import services.responses.exception_response.UnexpectedError;
 import entities.SpaceMarine;
 import entities.Starship;
-import repos.SpaceMarineRepository;
-import repos.StarshipRepo;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Optional;
 
-@Service
 public class StarshipService {
-    @Autowired
-    StarshipRepo starshipRepo;
-    @Autowired
-    SpaceMarineRepository spaceMarineRepository;
+
+    private DB db;
+
+    public StarshipService(){
+        try {
+            this.db = new DB();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public XMLResponse save(Integer id, String name){
-        if (starshipRepo.findById(id).isPresent()){
-            StarshipWrongFieldsXMLResponse response = new StarshipWrongFieldsXMLResponse();
-            response.setWrongFields(Arrays.asList("id"));
-            return response;
+        try {
+            if (this.db.starshipExistsById(id)){
+                StarshipWrongFieldsXMLResponse response = new StarshipWrongFieldsXMLResponse();
+                response.setWrongFields(Arrays.asList("id"));
+                return response;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
         Starship starship = new Starship();
         starship.setId(id);
         starship.setName(name);
         StarshipXMLResponse response = new StarshipXMLResponse();
-        response.setStarships(Arrays.asList(starshipRepo.save(starship)));
+        try {
+            this.db.save(starship);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        response.setStarships(Arrays.asList(starship));
         return response;
     }
 
     public XMLResponse findAll() {
         StarshipXMLResponse response = new StarshipXMLResponse();
-        response.setStarships(starshipRepo.findAll());
+        try {
+            response.setStarships(this.db.findAllStarships());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         return response;
     }
 
     public XMLResponse unload(Integer starshipId, Long spaceMarineId) {
-        Optional<SpaceMarine> optionalSpaceMarine = spaceMarineRepository.findById(spaceMarineId);
-        if (optionalSpaceMarine.isEmpty()){
-            LandXMLWrongFields response = new LandXMLWrongFields();
-            response.setWrongFields(Arrays.asList("spaceMarineId"));
-            return response;
+        try {
+            if (this.db.spaceMarineExistsById(spaceMarineId)){
+                LandXMLWrongFields response = new LandXMLWrongFields();
+                response.setWrongFields(Arrays.asList("spaceMarineId"));
+                return response;
+            }
+            if (this.db.starshipExistsById(starshipId)){
+                LandXMLWrongFields response = new LandXMLWrongFields();
+                response.setWrongFields(Arrays.asList("starshipId"));
+                return response;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        if (starshipRepo.findById(starshipId).isEmpty()){
-            LandXMLWrongFields response = new LandXMLWrongFields();
-            response.setWrongFields(Arrays.asList("starshipId"));
-            return response;
+        SpaceMarine spaceMarine = null;
+        try {
+            spaceMarine = this.db.findSpaceMarineById(spaceMarineId);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        SpaceMarine spaceMarine = optionalSpaceMarine.get();
         try{
             if (!spaceMarine.getStarshipId().equals(starshipId)){
                 return new UnexpectedError(401, "Space marine was not on starship " + starshipId.toString() + ".");
@@ -63,12 +89,16 @@ public class StarshipService {
             return new UnexpectedError(401, "Space marine was not on starship " + starshipId.toString() + ".");
         }
         spaceMarine.setStarshipId(null);
-        spaceMarineRepository.save(spaceMarine);
+        try {
+            this.db.update(spaceMarine);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         XMLResponse response = new XMLResponse() {
             public Integer getCode() {
                 return 204;
             }
         };
-        return null;
+        return response;
     }
 }

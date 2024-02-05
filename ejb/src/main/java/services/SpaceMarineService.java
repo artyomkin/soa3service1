@@ -1,50 +1,32 @@
 package services;
 
+import entities.domain.MeleeWeapon;
+import repo.DB;
 import services.requests.SpaceMarineRequest;
 import services.requests.SpaceMarineSearchRequest;
 import services.responses.*;
 import services.responses.exception_response.UnexpectedError;
 import entities.SpaceMarine;
 import entities.domain.Coordinates;
-import entities.domain.MeleeWeapon;
-import filters.Comparison;
-import filters.Condition;
-import filters.Filter;
-import repos.ChapterRepo;
-import repos.CoordinatesRepo;
-import repos.SpaceMarineRepository;
-import repos.StarshipRepo;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-
-import javax.transaction.Transactional;
+import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Service
 public class SpaceMarineService {
+    private DB db;
 
-    @Autowired
-    private SpaceMarineRepository spaceMarineRepo;
-    @Autowired
-    private CoordinatesRepo coordinatesRepo;
+    public SpaceMarineService() throws SQLException, ClassNotFoundException {
+        this.db = new DB();
+    }
 
-    @Autowired
-    private ChapterRepo chapterRepo;
-
-    @Autowired
-    private StarshipRepo starshipRepo;
-    public XMLResponse getAll(SpaceMarineSearchRequest request){
-        Map<String, String> parameters = new HashMap<>();
+    public XMLResponse getAll(SpaceMarineSearchRequest request) throws ClassNotFoundException, SQLException {
+        Map<String, String> parameters;
         try {
             parameters = convertToParameters(request);
         } catch (IllegalAccessException e) {
             UnexpectedError response = new UnexpectedError("Cannot process request parameters because of illegal access to fields.");
             return response;
         }
-
         if (!sortIsValid(parameters.get("sort"), parameters.get("order"))){
             SpaceMarineSearchWrongFieldsXMLResponse response = new SpaceMarineSearchWrongFieldsXMLResponse();
             response.setWrongFields(Arrays.asList("sort", "order"));
@@ -55,31 +37,7 @@ public class SpaceMarineService {
                 .filter(parameter -> !Arrays.asList("page", "size", "sort", "order", "coordinatesX", "coordinatesY", "loyal", "meleeWeapon", "chapterName", "chapterParentLegion", "chapterWorld").contains(parameter.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        Filter filter = buildFilter(searchParameters);
-        List<SpaceMarine> result;
-        if (filter.isEmpty()){
-            if (parameters.get("sort") != null){
-                result = spaceMarineRepo.findAll(PageRequest.of(
-                        request.getPage()-1,
-                        request.getSize(),
-                        Sort.by(request.getOrder(),request.getSort()))).getContent();
-            } else {
-                result = spaceMarineRepo.findAll(PageRequest.of(
-                        request.getPage()-1,
-                        request.getSize())).getContent();
-            }
-        } else {
-            if (parameters.get("sort") != null){
-                result = spaceMarineRepo.findAll(filter, PageRequest.of(
-                        request.getPage()-1,
-                        request.getSize(),
-                        Sort.by(request.getOrder(),request.getSort()))).getContent();
-            } else {
-                result = spaceMarineRepo.findAll(filter, PageRequest.of(
-                        request.getPage()-1,
-                        request.getSize())).getContent();
-            }
-        }
+        List<SpaceMarine> result = this.db.findAllSpaceMarines(searchParameters);
 
         Map<String, String> finalParameters = parameters;
         if (parameters.get("coordinatesX") != null){
@@ -134,51 +92,42 @@ public class SpaceMarineService {
     public XMLResponse save(SpaceMarineRequest spaceMarineRequest) {
         try {
             SpaceMarine spaceMarine = new SpaceMarine(spaceMarineRequest);
-            Coordinates coordinates = coordinatesRepo.save(spaceMarine.getCoordinates());
-            spaceMarine.setCoordinates(coordinates);
-            if (spaceMarine.getStarshipId() != null && !starshipRepo.existsById(spaceMarine.getStarshipId())){
+            if (spaceMarine.getStarshipId() != null && !this.db.starshipExistsById(spaceMarine.getStarshipId())){
                 throw new IllegalArgumentException("starshipId");
             }
-            if (chapterRepo.existsByName(spaceMarine.getChapter().getName())){
+            if (this.db.chapterExistsByName(spaceMarine.getChapter().getName())){
                 throw new IllegalArgumentException("chapterName");
             }
-            return new SpaceMarineXMLResponse(spaceMarineRepo.save(spaceMarine));
+            long savedSpaceMarineId = this.db.save(spaceMarine);
+            SpaceMarine savedSpaceMarine = this.db.findSpaceMarineById(savedSpaceMarineId);
+            return new SpaceMarineXMLResponse(savedSpaceMarine);
         } catch (IllegalArgumentException e){
             SpaceMarineSearchWrongFieldsXMLResponse errorResponse = new SpaceMarineSearchWrongFieldsXMLResponse();
             errorResponse.setWrongFields(Arrays.asList(e.getMessage()));
             return errorResponse;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
-
-    private Filter buildFilter(Map<String, String> parameters){
-        Filter filter = new Filter();
-        parameters.entrySet().stream()
-            .forEach(parameter -> filter.addCondition(new Condition.Builder().setComparison(Comparison.eq)
-                .setField(parameter.getKey())
-                .setValue(parameter.getValue())
-                .build()
-            ));
-        return filter;
-    }
     private Map<String, String> convertToParameters(SpaceMarineSearchRequest request) throws IllegalAccessException{
-        Map<String, String> resultParameters = Arrays.stream(request.getClass().getDeclaredFields())
-                .filter(field -> {
-                    try {
-                        field.setAccessible(true);
-                        return field.get(request) != null;
-                    } catch (IllegalAccessException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .map(field -> {
-                    field.setAccessible(true);
-                    try {
-                        return new AbstractMap.SimpleEntry<String, String>(field.getName(), field.get(request).toString());
-                    } catch (IllegalAccessException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+       Map<String, String> resultParameters = Arrays.stream(request.getClass().getDeclaredFields())
+               .filter(field -> {
+                   try {
+                       field.setAccessible(true);
+                       return field.get(request) != null;
+                   } catch (IllegalAccessException e) {
+                       throw new RuntimeException(e);
+                   }
+               })
+               .map(field -> {
+                   field.setAccessible(true);
+                   try {
+                       return new AbstractMap.SimpleEntry<String, String>(field.getName(), field.get(request).toString());
+                   } catch (IllegalAccessException e) {
+                       throw new RuntimeException(e);
+                   }
+               })
+               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         return resultParameters;
     }
@@ -189,78 +138,90 @@ public class SpaceMarineService {
 
     public XMLResponse findById(Long id) {
         SpaceMarineXMLResponse response = new SpaceMarineXMLResponse();
-        response.setSpaceMarine(spaceMarineRepo.findById(id).get());
+        try {
+            response.setSpaceMarine(this.db.findSpaceMarineById(id));
+            response.setCode(200);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         return response;
     }
 
-    @Transactional
     public XMLResponse update(Long id, SpaceMarineRequest spaceMarineRequest) {
         SpaceMarineXMLResponse response = new SpaceMarineXMLResponse();
-        if (spaceMarineRepo.findById(id).isPresent()){
-            try {
-                SpaceMarine spaceMarine = new SpaceMarine(spaceMarineRequest);
-                spaceMarine.setId(id);
-                Coordinates coordinates = coordinatesRepo.save(spaceMarine.getCoordinates());
-                spaceMarine.setCoordinates(coordinates);
-                String oldName = spaceMarineRepo.findById(id).get().getChapter().getName();
-                if (!chapterRepo.existsByName(spaceMarine.getChapter().getName())){
-                     chapterRepo.save(spaceMarine.getChapter());
-                     chapterRepo.deleteByName(oldName);
-                } else if (!spaceMarine.getChapter().getName().equals(oldName)){
-                    throw new IllegalArgumentException("chapterName");
+        try {
+            if (this.db.spaceMarineExistsById(id)){
+                try {
+                    SpaceMarine spaceMarine = new SpaceMarine(spaceMarineRequest);
+                    spaceMarine.setId(id);
+                    String oldName = this.db.findSpaceMarineById(id).getChapter().getName();
+                    if (!this.db.chapterExistsByName(spaceMarine.getChapter().getName())){
+                         this.db.deleteChapterByName(oldName);
+                    } else if (!spaceMarine.getChapter().getName().equals(oldName)){
+                        throw new IllegalArgumentException("chapterName");
+                    }
+                    if (spaceMarine.getStarshipId() != null && !this.db.starshipExistsById(spaceMarine.getStarshipId())){
+                        throw new IllegalArgumentException("starshipId");
+                    }
+                    Long savedId = this.db.update(spaceMarine);
+                    SpaceMarine savedSpaceMarine = this.db.findSpaceMarineById(savedId);
+                    response.setSpaceMarine(savedSpaceMarine);
+                } catch (IllegalArgumentException e){
+                    SpaceMarineSearchWrongFieldsXMLResponse errorResposne = new SpaceMarineSearchWrongFieldsXMLResponse();
+                    errorResposne.setWrongFields(Arrays.asList(e.getMessage()));
+                    return errorResposne;
                 }
-                if (spaceMarine.getStarshipId() != null && !starshipRepo.existsById(spaceMarine.getStarshipId())){
-                    throw new IllegalArgumentException("starshipId");
-                }
-                response.setSpaceMarine(spaceMarineRepo.save(spaceMarine));
-            } catch (IllegalArgumentException e){
+            } else {
                 SpaceMarineSearchWrongFieldsXMLResponse errorResposne = new SpaceMarineSearchWrongFieldsXMLResponse();
-                errorResposne.setWrongFields(Arrays.asList(e.getMessage()));
+                errorResposne.setWrongFields(Arrays.asList("id"));
                 return errorResposne;
             }
-        } else {
-            SpaceMarineSearchWrongFieldsXMLResponse errorResposne = new SpaceMarineSearchWrongFieldsXMLResponse();
-            errorResposne.setWrongFields(Arrays.asList("id"));
-            return errorResposne;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
         return response;
     }
 
-    @Transactional
     public void delete(Long id) {
-        SpaceMarine spaceMarine = spaceMarineRepo.findById(id).get();
-        if (spaceMarine == null){
-            return;
+        try {
+            if (!this.db.spaceMarineExistsById(id)){
+                return;
+            }
+            this.db.deleteSpaceMarineById(id);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        chapterRepo.deleteByName(spaceMarine.getChapter().getName());
-        coordinatesRepo.deleteById(spaceMarine.getCoordinates().getId());
-        spaceMarineRepo.deleteById(id);
     }
 
     public void deleteByMeleeWeapon(MeleeWeapon meleeWeapon) {
-        spaceMarineRepo.findAllByMeleeWeapon(meleeWeapon).stream()
-                        .forEach(spaceMarine -> spaceMarineRepo.deleteById(spaceMarine.getId()));
+        try {
+            this.db.findSpaceMarinesByMeleeWeapon(meleeWeapon).stream()
+                            .forEach(spaceMarine -> {
+                                try {
+                                    this.db.deleteSpaceMarineById(spaceMarine.getId());
+                                } catch (SQLException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public XMLResponse getMinByCoords() {
-        return new SpaceMarineXMLResponse(spaceMarineRepo.findByMinCoords().get(0));
+        try {
+            List<SpaceMarine> spaceMarines = this.db.findSpaceMarinesByMinCoords();
+            return new SpaceMarineXMLResponse(spaceMarines.get(0));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Integer countByHealth(Double health){
-        return spaceMarineRepo.count(health);
+        try {
+            return this.db.countByHealth(health);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
-
-    //public boolean isNumeric(String s){
-    //    try{
-    //        Double n = Double.parseDouble(s);
-    //        return true;
-    //    } catch (NumberFormatException e){
-    //        return false;
-    //    }
-    //}
-
-    //public List<String> validate(SpaceMarineRequest spaceMarineRequest){
-    //    List<String> wrongFields = new ArrayList<>();
-
-    //jk}
 }
