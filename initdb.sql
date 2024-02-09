@@ -25,6 +25,6 @@ create table if not exists coordinates(
 );
 
 create table if not exists starships(
-  id serial primary key,
+  id int primary key,
   name varchar(255)
 );

@@ -1,10 +1,9 @@
 package serviceBeans;
 
-import services.SpaceMarineService;
 import services.SpaceMarineServiceBean;
-import services.StarshipService;
-import services.StarshipServiceBean;
 
+import services.StarshipServiceBean;
+import services.SpaceMarineServiceBean;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -19,7 +18,7 @@ public class EJBFactory {
     }
     private static SpaceMarineServiceBean lookupSpaceMarineServiceBean() throws NamingException {
         Context ctx = createInitialContext();
-        return (SpaceMarineServiceBean) ctx.lookup("ejb:/ejb-0.0.1-SNAPSHOT/SpaceMarineServiceBeanImpl!services.SpaceMarineServiceBean");
+        return (SpaceMarineServiceBean) ctx.lookup("ejb:/ejb-0.0.1-SNAPSHOT/SpaceMarineServiceImpl!services.SpaceMarineServiceBean");
     }
     private static StarshipServiceBean lookupStarshipServiceBean() throws NamingException {
         Context ctx = createInitialContext();

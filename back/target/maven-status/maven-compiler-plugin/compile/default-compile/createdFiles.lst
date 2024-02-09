@@ -8,6 +8,7 @@ config/SecurityConfig.class
 exceptions/NotFoundException.class
 config/WebConfig$1.class
 serviceBeans/EJBFactory.class
+config/MyConsulLifeCycle.class
 exceptions/InvalidSortParamsException.class
 ServletInitializer.class
 controllers/StarshipController.class

@@ -1,0 +1,20 @@
+spring:
+  ssl:
+    bundle:
+      jks:
+        server:
+          key:
+            alias: "server"
+          keystore:
+            location: "classpath:server.p12"
+            password: "secret"
+            type: "PKCS12"
+  application:
+    name: "soa3back"
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+    discovery:
+      prefer-ip-address: true
+      ip-address: 127.0.0.1

@@ -42,7 +42,7 @@ public class DB {
 
     public DB where(String cond){
         if (cond != null && !cond.isBlank()){
-            this.sql += "where " + cond;
+            this.sql += "where " + cond + " ";
         }
         return this;
     }
@@ -58,12 +58,12 @@ public class DB {
     }
 
     public DB del(String table){
-        this.sql += "delete from " + table;
+        this.sql += "delete from " + table + " ";
         return this;
     }
 
     public DB update(String table){
-        this.sql += "update " + table;
+        this.sql += "update " + table + " ";
         return this;
     }
 
@@ -124,24 +124,28 @@ public class DB {
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
         ResultSet rs = this.sel("*").f("coordinates").where("id = " + id.toString()).fetch(con);
         Coordinates coordinates = new Coordinates();
-        rs.next();
-        coordinates.setId(rs.getInt("id"));
-        coordinates.setX(rs.getLong("x"));
-        coordinates.setY(rs.getInt("y"));
-        con.close();
-        return coordinates;
+        if (rs.next()){
+            coordinates.setId(rs.getInt("id"));
+            coordinates.setX(rs.getLong("x"));
+            coordinates.setY(rs.getInt("y"));
+            con.close();
+            return coordinates;
+        }
+        return null;
     }
 
     public Chapter findChapterByName(String name) throws SQLException {
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
         ResultSet rs = this.sel("*").f("chapters").where("name = \'" + name + "\'").fetch(con);
         Chapter chapter = new Chapter();
-        rs.next();
-        chapter.setName(rs.getString("name"));
-        chapter.setParentLegion(rs.getString("parent_legion"));
-        chapter.setWorld(rs.getString("world"));
-        con.close();
-        return chapter;
+        if (rs.next()) {
+            chapter.setName(rs.getString("name"));
+            chapter.setParentLegion(rs.getString("parent_legion"));
+            chapter.setWorld(rs.getString("world"));
+            con.close();
+            return chapter;
+        }
+        return null;
     }
 
     public List<SpaceMarine> findAllSpaceMarines(@NotNull Map<String, String> parameters) throws SQLException {
@@ -190,12 +194,9 @@ public class DB {
 
     public List<SpaceMarine> findSpaceMarinesByMinCoords() throws SQLException {
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
-        ResultSet coordsRs = sel("min(id)").f("coordinates").fetch(con);
-        coordsRs.next();
-        Integer minCoordsId = coordsRs.getInt("min");
         ResultSet spaceMarinesRs = sel("*")
                 .f("space_marines")
-                .where("coordinates_id = " + minCoordsId)
+                .where("id = (select min(space_marines.id) from space_marines join coordinates on coordinates.id = space_marines.coordinates_id)")
                 .fetch(con);
         List<SpaceMarine> result = new ArrayList<>();
         while (spaceMarinesRs.next()) {
@@ -221,7 +222,7 @@ public class DB {
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
         ResultSet rs = sel("*")
                 .f("space_marines")
-                .where("melee_weapon = " + meleeWeapon.toString())
+                .where("melee_weapon = \'" + meleeWeapon.toString() + "\'")
                 .fetch(con);
         List<SpaceMarine> result = new ArrayList<>();
         while (rs.next()) {
@@ -256,7 +257,7 @@ public class DB {
 
     public int save(@NotNull Starship starship) throws SQLException {
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
-        ResultSet rs = insert("starship", Arrays.asList("id", "name"))
+        ResultSet rs = insert("starships", Arrays.asList("id", "name"))
                 .values(Arrays.asList(starship.getId().toString(), "\'" + starship.getName() + "\'"))
                 .execute(con, "id");
         rs.next();
@@ -337,7 +338,7 @@ public class DB {
 
     public void deleteChapterByName(String name) throws SQLException {
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
-        del("chapters").where("name = " + name).execute(con);
+        del("chapters").where("name = \'" + name + "\'").execute(con);
         con.close();
     }
 
@@ -353,9 +354,7 @@ public class DB {
             return;
         }
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
-        del("coordinates").where("id = " + sm.getCoordinates().getId()).execute(con);
-        del("chapters").where("name = " + sm.getChapter().getName()).execute(con);
-        del("space_marines").where("id = " + id);
+        del("space_marines").where("id = " + id).execute(con);
         con.close();
     }
 
@@ -368,46 +367,43 @@ public class DB {
         return res;
     }
 
-    public void update(Coordinates coordinates) throws SQLException{
+    public void update(Integer id, Coordinates coordinates) throws SQLException{
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
         Map<String, String> setValues = new HashMap<>();
-        setValues.put("id", coordinates.getId().toString());
         setValues.put("x", coordinates.getX().toString());
         setValues.put("y", String.valueOf(coordinates.getY()));
-        update("coordinates").set(setValues).execute(con);
+        update("coordinates").set(setValues).where("id = " + id.toString()).execute(con);
         con.close();
     }
 
-    public void update(Chapter chapter) throws SQLException{
+    public void update(String name, Chapter chapter) throws SQLException{
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
         Map<String, String> setValues = new HashMap<>();
-        setValues.put("name", chapter.getName());
         setValues.put("parent_legion", "\'" + chapter.getParentLegion() + "\'");
         setValues.put("world", "\'" + chapter.getWorld() + "\'");
-        update("chapters").set(setValues);
+        update("chapters").set(setValues).where("name = \'" + name + "\'").execute(con);
         con.close();
     }
 
-    public Long update(SpaceMarine sm) throws SQLException {
+    public Long update(Long id, SpaceMarine sm) throws SQLException {
         Connection con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/soa3", "artem", "artem");
         SpaceMarine oldSm = findSpaceMarineById(sm.getId());
-        update(oldSm.getCoordinates());
-        update(oldSm.getChapter());
-        int coordinatesId = sm.getCoordinates().getId();
-        String chapterName = sm.getChapter().getName();
+        update(oldSm.getCoordinates().getId(), sm.getCoordinates());
+        update(oldSm.getChapter().getName(), sm.getChapter());
+        int coordinatesId = oldSm.getCoordinates().getId();
+        String chapterName = oldSm.getChapter().getName();
         Map<String, String> setValues = new HashMap<>();
-        setValues.put("id", String.valueOf(sm.getId()));
         setValues.put("name", "\'" + sm.getName() + "\'");
         setValues.put("coordinates_id", String.valueOf(coordinatesId));
-        setValues.put("creation_date", sm.getCreationDate().toString());
+        setValues.put("creation_date", "\'" + sm.getCreationDate().toString() + "\'");
         setValues.put("creation_date_str", "\'" + sm.getCreationDateStr().toString() + "\'");
         setValues.put("health", String.valueOf(sm.getHealth()));
         setValues.put("loyal", String.valueOf(sm.getLoyal()));
         setValues.put("height", String.valueOf(sm.getHeight()));
-        setValues.put("melee_weapon", sm.getMeleeWeapon().toString());
-        setValues.put("chapter_name", sm.getChapter().getName());
-        setValues.put("starhip_id", sm.getStarshipId().toString());
-        ResultSet rs = update("space_marines").set(setValues).execute(con, "id");
+        setValues.put("melee_weapon", "\'" + sm.getMeleeWeapon().toString() + "\'");
+        setValues.put("chapter_name", "\'" + sm.getChapter().getName() + "\'");
+        setValues.put("starship_id", sm.getStarshipId() != null ? sm.getStarshipId().toString() : "NULL");
+        ResultSet rs = update("space_marines").set(setValues).where("id = " + id.toString()).execute(con, "id");
         rs.next();
         Long updatedId = rs.getLong("id");
         con.close();

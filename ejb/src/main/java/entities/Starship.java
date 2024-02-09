@@ -5,10 +5,11 @@ import lombok.Data;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import java.io.Serializable;
 
 @Entity
 @Data
-public class Starship {
+public class Starship implements Serializable {
     @Id
     private Integer id;
     private String name;

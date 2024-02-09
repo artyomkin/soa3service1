@@ -1,21 +1,25 @@
 package services;
 
 import entities.domain.MeleeWeapon;
+import org.jboss.ejb3.annotation.Pool;
 import repo.DB;
 import services.requests.SpaceMarineRequest;
 import services.requests.SpaceMarineSearchRequest;
 import services.responses.*;
 import services.responses.exception_response.UnexpectedError;
 import entities.SpaceMarine;
-import entities.domain.Coordinates;
+
+import javax.ejb.Stateless;
 import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class SpaceMarineService {
+@Stateless
+@Pool(value="soa3ejbSpaceMarinePool")
+public class SpaceMarineServiceImpl implements SpaceMarineServiceBean {
     private DB db;
 
-    public SpaceMarineService() throws SQLException, ClassNotFoundException {
+    public SpaceMarineServiceImpl() throws SQLException, ClassNotFoundException {
         this.db = new DB();
     }
 
@@ -154,16 +158,13 @@ public class SpaceMarineService {
                 try {
                     SpaceMarine spaceMarine = new SpaceMarine(spaceMarineRequest);
                     spaceMarine.setId(id);
-                    String oldName = this.db.findSpaceMarineById(id).getChapter().getName();
                     if (!this.db.chapterExistsByName(spaceMarine.getChapter().getName())){
-                         this.db.deleteChapterByName(oldName);
-                    } else if (!spaceMarine.getChapter().getName().equals(oldName)){
-                        throw new IllegalArgumentException("chapterName");
+                        this.db.save(spaceMarine.getChapter());
                     }
                     if (spaceMarine.getStarshipId() != null && !this.db.starshipExistsById(spaceMarine.getStarshipId())){
                         throw new IllegalArgumentException("starshipId");
                     }
-                    Long savedId = this.db.update(spaceMarine);
+                    Long savedId = this.db.update(spaceMarine.getId(), spaceMarine);
                     SpaceMarine savedSpaceMarine = this.db.findSpaceMarineById(savedId);
                     response.setSpaceMarine(savedSpaceMarine);
                 } catch (IllegalArgumentException e){

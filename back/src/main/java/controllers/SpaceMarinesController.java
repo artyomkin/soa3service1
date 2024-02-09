@@ -2,7 +2,6 @@ package controllers;
 
 import dto.XMLParser;
 import entities.domain.MeleeWeapon;
-import exceptions.NotFoundException;
 import serviceBeans.EJBFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,7 +14,6 @@ import services.SpaceMarineServiceBean;
 import services.requests.SpaceMarineRequest;
 import services.requests.SpaceMarineSearchRequest;
 import services.requests.constraints.SortException;
-import services.responses.SpaceMarineListXMLResponse;
 import services.responses.SpaceMarineSearchWrongFieldsXMLResponse;
 import services.responses.SpaceMarineXMLResponse;
 import services.responses.XMLResponse;
@@ -26,7 +24,6 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import javax.xml.bind.JAXBException;
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -130,11 +127,6 @@ public class SpaceMarinesController {
     //            .collect(Collectors.toList());
     //    response.setWrongFields(constraintViolations);
     //    return ResponseEntity.badRequest().body(parser.convertToXML(response));
-    //}
-
-    //@ExceptionHandler({DataIntegrityViolationException.class})
-    //public ResponseEntity handleDataIntegrityViolation(DataIntegrityViolationException exception) throws JAXBException {
-    //    return ResponseEntity.badRequest().body(parser.convertToXML(new UnexpectedError(400, "Incorrect value in request.")));
     //}
 
     //@ExceptionHandler({NumberFormatException.class})
