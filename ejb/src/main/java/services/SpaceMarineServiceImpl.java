@@ -3,6 +3,7 @@ package services;
 import entities.domain.MeleeWeapon;
 import org.jboss.ejb3.annotation.Pool;
 import repo.DB;
+import services.requests.CustomSortDirection;
 import services.requests.SpaceMarineRequest;
 import services.requests.SpaceMarineSearchRequest;
 import services.responses.*;
@@ -10,6 +11,7 @@ import services.responses.exception_response.UnexpectedError;
 import entities.SpaceMarine;
 
 import javax.ejb.Stateless;
+import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,8 +25,17 @@ public class SpaceMarineServiceImpl implements SpaceMarineServiceBean {
         this.db = new DB();
     }
 
+    private String spaceMarineToString(SpaceMarine sm){
+        String res = "";
+        res += "id = " + sm.getId() + "\n";
+        res += "name = " + sm.getName() + "\n";
+        res += "creationDate = " + sm.getCreationDateStr() + "\n\n";
+        return res;
+    }
+
     public XMLResponse getAll(SpaceMarineSearchRequest request) throws ClassNotFoundException, SQLException {
         Map<String, String> parameters;
+        DB db = new DB();
         try {
             parameters = convertToParameters(request);
         } catch (IllegalAccessException e) {
@@ -39,25 +50,42 @@ public class SpaceMarineServiceImpl implements SpaceMarineServiceBean {
 
         Map<String, String> searchParameters = parameters.entrySet().stream()
                 .filter(parameter -> !Arrays.asList("page", "size", "sort", "order", "coordinatesX", "coordinatesY", "loyal", "meleeWeapon", "chapterName", "chapterParentLegion", "chapterWorld").contains(parameter.getKey()))
+                .map(parameter -> {
+                    if (Arrays.asList("meleeWeapon", "name", "creationDate").contains(parameter.getKey())){
+                        return Map.entry(parameter.getKey(), '\'' + parameter.getValue() + '\'');
+                    }
+                    return parameter;
+                })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        List<SpaceMarine> result = this.db.findAllSpaceMarines(searchParameters);
-
+        List<SpaceMarine> result = db.findAllSpaceMarines(searchParameters);
+        result.stream().forEach(i -> System.out.println(spaceMarineToString(i)));
         Map<String, String> finalParameters = parameters;
-        if (parameters.get("coordinatesX") != null){
+        System.out.println("before coordinatesX " + result.size());
+        if (parameters.get("coordinatesX") != null && !parameters.get("coordinatesX").isBlank()){
+            System.out.println("coordinatesX == " + parameters.get("coordinatesX"));
             try{
+                System.out.println("result size is " + result.size());
                 result = result.stream()
-                        .filter(spaceMarine -> spaceMarine.getCoordinates().getX().equals(Double.valueOf(finalParameters.get("coordinatesX"))))
+                        .filter(spaceMarine -> {
+                            System.out.println(spaceMarineToString(spaceMarine));
+                            return spaceMarine.getCoordinates().getX().equals(Long.valueOf(finalParameters.get("coordinatesX")));
+                        })
                         .collect(Collectors.toList());
+                result.stream().forEach(i -> System.out.println(spaceMarineToString(i)));
             } catch (NumberFormatException e){
-                result.clear();
+                //result.clear();
+                throw e;
             }
         }
-        if (parameters.get("coordinatesY") != null){
+        System.out.println("before coordinatesY " + result.size());
+        if (parameters.get("coordinatesY") != null && !parameters.get("coordinatesY").isBlank()){
+            System.out.println("Entered coordinatesY");
             try{
-            result = result.stream()
-                    .filter(spaceMarine -> Integer.valueOf(spaceMarine.getCoordinates().getY()).equals(Double.valueOf(finalParameters.get("coordinatesY"))))
+                result = result.stream()
+                    .filter(spaceMarine -> Integer.valueOf(spaceMarine.getCoordinates().getY()).equals(Integer.valueOf(finalParameters.get("coordinatesY"))))
                     .collect(Collectors.toList());
+                result.stream().forEach(i -> System.out.println(spaceMarineToString(i)));
             } catch (NumberFormatException e){
                 result.clear();
             }
@@ -66,6 +94,7 @@ public class SpaceMarineServiceImpl implements SpaceMarineServiceBean {
             result = result.stream()
                     .filter(spaceMarine -> Boolean.toString(spaceMarine.getLoyal()).equals(finalParameters.get("loyal")))
                     .collect(Collectors.toList());
+            result.stream().forEach(i -> System.out.println(spaceMarineToString(i)));
         }
         if (parameters.get("meleeWeapon") != null){
             result = result.stream()
@@ -74,23 +103,43 @@ public class SpaceMarineServiceImpl implements SpaceMarineServiceBean {
                             .toString()
                             .equals(finalParameters.get("meleeWeapon")))
                     .collect(Collectors.toList());
+            result.stream().forEach(i -> System.out.println(spaceMarineToString(i)));
         }
         if (parameters.get("chapterName") != null){
             result = result.stream()
                     .filter(spaceMarine -> spaceMarine.getChapter().getName().equals(finalParameters.get("chapterName")))
                     .collect(Collectors.toList());
+            result.stream().forEach(i -> System.out.println(spaceMarineToString(i)));
         }
         if (parameters.get("chapterParentLegion") != null){
             result = result.stream()
                     .filter(spaceMarine -> spaceMarine.getChapter().getParentLegion().equals(finalParameters.get("chapterParentLegion")))
                     .collect(Collectors.toList());
+            result.stream().forEach(i -> System.out.println(spaceMarineToString(i)));
         }
         if (parameters.get("chapterWorld") != null){
             result = result.stream()
                     .filter(spaceMarine -> spaceMarine.getChapter().getWorld().equals(finalParameters.get("chapterWorld")))
                     .collect(Collectors.toList());
+            result.stream().forEach(i -> System.out.println(spaceMarineToString(i)));
         }
 
+        System.out.println("returning result");
+        try {
+            if (parameters.containsKey("sort")) {
+                result = sortSpaceMarines(result, parameters.get("sort"), CustomSortDirection.valueOf(parameters.get("order")));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        int page = Integer.parseInt(parameters.get("page"));
+        int size = Integer.parseInt(parameters.get("size"));
+        if (!result.isEmpty()){
+            result = new ArrayList<>(result.subList(Math.max((page - 1) * size, 0), Math.min(page * size, result.size())));
+        }
+
+        result.forEach(i -> System.out.println(spaceMarineToString(i)));
         return SpaceMarineListXMLResponse.ok(result);
     }
     public XMLResponse save(SpaceMarineRequest spaceMarineRequest) {
@@ -224,5 +273,56 @@ public class SpaceMarineServiceImpl implements SpaceMarineServiceBean {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public List<SpaceMarine> sortSpaceMarines(List<SpaceMarine> inSpaceMarines, String sortBy, CustomSortDirection order) throws Exception{
+        List<SpaceMarine> spaceMarines = inSpaceMarines;
+        switch (sortBy){
+            case ("id"):
+                Collections.sort(spaceMarines, Comparator.comparing(SpaceMarine::getId));
+                break;
+            case ("name"):
+                Collections.sort(spaceMarines, Comparator.comparing(SpaceMarine::getName));
+                break;
+            case ("coordinatesX"):
+                spaceMarines.sort(Comparator.comparing(sm -> sm.getCoordinates().getX()));
+                break;
+            case ("coordinatesY"):
+                spaceMarines.sort(Comparator.comparing(sm -> sm.getCoordinates().getY()));
+                break;
+            case ("creationDate"):
+                spaceMarines.sort(Comparator.comparing(SpaceMarine::getCreationDate));
+                break;
+            case ("health"):
+                spaceMarines.sort(Comparator.comparing(SpaceMarine::getHealth));
+                break;
+            case ("loyal"):
+                spaceMarines.sort(Comparator.comparing(SpaceMarine::getLoyal));
+                break;
+            case ("height"):
+                spaceMarines.sort(Comparator.comparing(SpaceMarine::getHeight));
+                break;
+            case ("meleeWeapon"):
+                spaceMarines.sort(Comparator.comparing(SpaceMarine::getMeleeWeapon));
+                break;
+            case ("chapterName"):
+                spaceMarines.sort(Comparator.comparing(sm -> sm.getChapter().getName()));
+                break;
+            case ("chapterParentLegion"):
+                spaceMarines.sort(Comparator.comparing(sm -> sm.getChapter().getParentLegion()));
+                break;
+            case ("chapterWorld"):
+                spaceMarines.sort(Comparator.comparing(sm -> sm.getChapter().getWorld()));
+                break;
+            case ("starshipId"):
+                spaceMarines.sort(Comparator.comparing(SpaceMarine::getStarshipId));
+                break;
+            default:
+                throw new Exception("Sorting space marines failed. Parameter sortBy is not in allowed list.");
+        }
+        if (order.equals(CustomSortDirection.DESC)){
+            Collections.reverse(spaceMarines);
+        }
+        return spaceMarines;
     }
 }

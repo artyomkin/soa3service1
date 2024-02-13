@@ -14,7 +14,9 @@ import java.util.Date;
 @XmlRootElement(name="SpaceMarine")
 public class SpaceMarineSearchRequest implements Serializable {
     private Integer id;
-    private Date creationDate;
+
+
+    private String creationDate;
     @Min(value = 1, message = "page")
     @Max(value = 999999999, message = "page")
     private Integer page = 1;
@@ -26,9 +28,9 @@ public class SpaceMarineSearchRequest implements Serializable {
     private CustomSortDirection order;
     private String name;
     @Digits(integer = 999999999, fraction = 5, message = "coordinatesX")
-    private Double coordinatesX;
+    private Long coordinatesX;
     @Digits(integer = 999999999, fraction = 5, message = "coordinatesY")
-    private Double coordinatesY;
+    private Integer coordinatesY;
     private String loyal;
     @Min(value = 0, message = "health")
     @Digits(integer = 999999999, fraction = 5, message = "health")
@@ -43,6 +45,13 @@ public class SpaceMarineSearchRequest implements Serializable {
     private String chapterParentLegion;
     private String chapterWorld;
     private Integer starshipId;
+    public String getCreationDate() {
+        return creationDate;
+    }
+
+    public void setCreationDate(String creationDate) {
+        this.creationDate = creationDate;
+    }
 
     public Integer getId() {
         return id;
@@ -52,12 +61,20 @@ public class SpaceMarineSearchRequest implements Serializable {
         this.id = id;
     }
 
-    public Date getCreationDate() {
-        return creationDate;
+    public Long getCoordinatesX() {
+        return coordinatesX;
     }
 
-    public void setCreationDate(Date creationDate) {
-        this.creationDate = creationDate;
+    public void setCoordinatesX(Long coordinatesX) {
+        this.coordinatesX = coordinatesX;
+    }
+
+    public Integer getCoordinatesY() {
+        return coordinatesY;
+    }
+
+    public void setCoordinatesY(Integer coordinatesY) {
+        this.coordinatesY = coordinatesY;
     }
 
     public Integer getPage() {
@@ -100,21 +117,7 @@ public class SpaceMarineSearchRequest implements Serializable {
         this.name = name;
     }
 
-    public Double getCoordinatesX() {
-        return coordinatesX;
-    }
 
-    public void setCoordinatesX(Double coordinatesX) {
-        this.coordinatesX = coordinatesX;
-    }
-
-    public Double getCoordinatesY() {
-        return coordinatesY;
-    }
-
-    public void setCoordinatesY(Double coordinatesY) {
-        this.coordinatesY = coordinatesY;
-    }
 
     public String getLoyal() {
         return loyal;

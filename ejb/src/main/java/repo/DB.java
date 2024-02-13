@@ -47,6 +47,14 @@ public class DB {
         return this;
     }
 
+    public DB where(List<String> cond){
+        cond = cond.stream().filter(condition -> condition != null && !condition.isBlank()).collect(Collectors.toList());
+        if (cond.size() > 0){
+            this.sql += "where " + String.join(" and ", cond);
+        }
+        return this;
+    }
+
     public DB insert(String table, List<String> cols){
         this.sql += "insert into " + table + " (" + String.join(", ", cols) + ") ";
         return this;
@@ -107,14 +115,14 @@ public class DB {
             sm.setId(rs.getInt("id"));
             sm.setName(rs.getString("name"));
             sm.setCoordinates(this.findCoordinatesById(rs.getInt("coordinates_id")));
-            sm.setCreationDate(rs.getDate("creation_date"));
+            sm.setCreationDate(rs.getDate("creationdate"));
             sm.setCreationDateStr(rs.getString("creation_date_str"));
             sm.setHealth(rs.getFloat("health"));
             sm.setLoyal(rs.getBoolean("loyal"));
             sm.setHeight(rs.getDouble("height"));
             sm.setMeleeWeapon(MeleeWeapon.valueOf(rs.getString("melee_weapon")));
             sm.setChapter(this.findChapterByName(rs.getString("chapter_name")));
-            sm.setStarshipId(rs.getInt("starship_id"));
+            sm.setStarshipId(rs.getInt("starshipid"));
             return sm;
         }
         return null;
@@ -156,7 +164,7 @@ public class DB {
                 .where(
                         parameters.entrySet().stream()
                                 .map(entry -> entry.getKey() + " = " + entry.getValue())
-                                .collect(Collectors.joining())
+                                .collect(Collectors.toList())
                 )
                 .fetch(con);
         List<SpaceMarine> result = new ArrayList<>();
@@ -165,14 +173,14 @@ public class DB {
             sm.setId(rs.getInt("id"));
             sm.setName(rs.getString("name"));
             sm.setCoordinates(this.findCoordinatesById(rs.getInt("coordinates_id")));
-            sm.setCreationDate(rs.getDate("creation_date"));
+            sm.setCreationDate(rs.getDate("creationdate"));
             sm.setCreationDateStr(rs.getString("creation_date_str"));
             sm.setHealth(rs.getFloat("health"));
             sm.setLoyal(rs.getBoolean("loyal"));
             sm.setHeight(rs.getDouble("height"));
             sm.setMeleeWeapon(MeleeWeapon.valueOf(rs.getString("melee_weapon")));
             sm.setChapter(this.findChapterByName(rs.getString("chapter_name")));
-            sm.setStarshipId(rs.getInt("starship_id"));
+            sm.setStarshipId(rs.getInt("starshipid"));
             result.add(sm);
         }
         con.close();
@@ -204,14 +212,14 @@ public class DB {
             sm.setId(spaceMarinesRs.getInt("id"));
             sm.setName(spaceMarinesRs.getString("name"));
             sm.setCoordinates(this.findCoordinatesById(spaceMarinesRs.getInt("coordinates_id")));
-            sm.setCreationDate(spaceMarinesRs.getDate("creation_date"));
+            sm.setCreationDate(spaceMarinesRs.getDate("creationdate"));
             sm.setCreationDateStr(spaceMarinesRs.getString("creation_date_str"));
             sm.setHealth(spaceMarinesRs.getFloat("health"));
             sm.setLoyal(spaceMarinesRs.getBoolean("loyal"));
             sm.setHeight(spaceMarinesRs.getDouble("height"));
             sm.setMeleeWeapon(MeleeWeapon.valueOf(spaceMarinesRs.getString("melee_weapon")));
             sm.setChapter(this.findChapterByName(spaceMarinesRs.getString("chapter_name")));
-            sm.setStarshipId(spaceMarinesRs.getInt("starship_id"));
+            sm.setStarshipId(spaceMarinesRs.getInt("starshipid"));
             result.add(sm);
         }
         con.close();
@@ -230,14 +238,14 @@ public class DB {
             sm.setId(rs.getInt("id"));
             sm.setName(rs.getString("name"));
             sm.setCoordinates(this.findCoordinatesById(rs.getInt("coordinates_id")));
-            sm.setCreationDate(rs.getDate("creation_date"));
+            sm.setCreationDate(rs.getDate("creationdate"));
             sm.setCreationDateStr(rs.getString("creation_date_str"));
             sm.setHealth(rs.getFloat("health"));
             sm.setLoyal(rs.getBoolean("loyal"));
             sm.setHeight(rs.getDouble("height"));
             sm.setMeleeWeapon(MeleeWeapon.valueOf(rs.getString("melee_weapon")));
             sm.setChapter(this.findChapterByName(rs.getString("chapter_name")));
-            sm.setStarshipId(rs.getInt("starship_id"));
+            sm.setStarshipId(rs.getInt("starshipid"));
             result.add(sm);
         }
         con.close();
@@ -282,14 +290,14 @@ public class DB {
         ResultSet rs = insert("space_marines", Arrays.asList(
                 "name",
                 "coordinates_id",
-                "creation_date",
+                "creationdate",
                 "creation_date_str",
                 "health",
                 "loyal",
                 "height",
                 "melee_weapon",
                 "chapter_name",
-                "starship_id"))
+                "starshipid"))
                 .values(Arrays.asList(
                         "\'" + sm.getName() + "\'",
                         String.valueOf(coordinatesId),
@@ -395,14 +403,14 @@ public class DB {
         Map<String, String> setValues = new HashMap<>();
         setValues.put("name", "\'" + sm.getName() + "\'");
         setValues.put("coordinates_id", String.valueOf(coordinatesId));
-        setValues.put("creation_date", "\'" + sm.getCreationDate().toString() + "\'");
+        setValues.put("creationdate", "\'" + sm.getCreationDate().toString() + "\'");
         setValues.put("creation_date_str", "\'" + sm.getCreationDateStr().toString() + "\'");
         setValues.put("health", String.valueOf(sm.getHealth()));
         setValues.put("loyal", String.valueOf(sm.getLoyal()));
         setValues.put("height", String.valueOf(sm.getHeight()));
         setValues.put("melee_weapon", "\'" + sm.getMeleeWeapon().toString() + "\'");
         setValues.put("chapter_name", "\'" + sm.getChapter().getName() + "\'");
-        setValues.put("starship_id", sm.getStarshipId() != null ? sm.getStarshipId().toString() : "NULL");
+        setValues.put("starshipid", sm.getStarshipId() != null ? sm.getStarshipId().toString() : "NULL");
         ResultSet rs = update("space_marines").set(setValues).where("id = " + id.toString()).execute(con, "id");
         rs.next();
         Long updatedId = rs.getLong("id");

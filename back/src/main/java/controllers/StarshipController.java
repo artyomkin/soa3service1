@@ -6,9 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import services.SpaceMarineServiceBean;
 import services.StarshipServiceBean;
 import services.responses.XMLResponse;
 
+import javax.ejb.NoSuchEJBException;
 import javax.naming.NamingException;
 import javax.xml.bind.JAXBException;
 
@@ -17,14 +19,10 @@ import javax.xml.bind.JAXBException;
 public class StarshipController {
     @Autowired
     XMLParser<XMLResponse> parser;
-
-    StarshipServiceBean starshipService = EJBFactory.createStarshipServiceFromJNDI();
-
-    public StarshipController() throws NamingException {
-    }
-
     @PostMapping("{id}/{name}")
-    public ResponseEntity createStarship(@PathVariable("id") Integer id, @PathVariable("name") String name){
+    public ResponseEntity createStarship(@PathVariable("id") Integer id, @PathVariable("name") String name) throws NamingException {
+        StarshipServiceBean starshipService;
+        starshipService = EJBFactory.createStarshipServiceFromJNDI();
         XMLResponse response = starshipService.save(id, name);
         try {
             return new ResponseEntity(parser.convertToXML(response), HttpStatus.valueOf(response.getCode()));
@@ -34,7 +32,9 @@ public class StarshipController {
     }
 
     @GetMapping
-    public ResponseEntity getStarships(){
+    public ResponseEntity getStarships() throws NamingException {
+        StarshipServiceBean starshipService;
+        starshipService = EJBFactory.createStarshipServiceFromJNDI();
         XMLResponse response = starshipService.findAll();
         try {
             return new ResponseEntity(parser.convertToXML(response), HttpStatus.valueOf(200));
@@ -44,7 +44,9 @@ public class StarshipController {
     }
 
     @PutMapping("/{starshipId}/unload/{spaceMarineId}")
-    public ResponseEntity unload(@PathVariable("starshipId") Integer starshipId, @PathVariable("spaceMarineId") Long spaceMarineId) {
+    public ResponseEntity unload(@PathVariable("starshipId") Integer starshipId, @PathVariable("spaceMarineId") Long spaceMarineId) throws NamingException {
+        StarshipServiceBean starshipService;
+        starshipService = EJBFactory.createStarshipServiceFromJNDI();
         XMLResponse response = starshipService.unload(starshipId, spaceMarineId);
         try {
             if (response == null){
